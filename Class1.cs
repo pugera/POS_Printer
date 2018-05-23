@@ -48,9 +48,10 @@ namespace POS_Printer
         }
 
         //RAW出力部
-        public void SendRAW(Byte[] Txt) {
+        public void SendRAW(Byte[] Txt,int a,int b) {
             if (Send_Port != null) {
-                Send_Port.Write(Txt, 0, Txt.Length);
+                Send_Port.Write(Txt, a, b);
+                return;
             }
             else {
                 MessageBox.Show("ポートがオープンしていません。");
@@ -138,15 +139,15 @@ namespace POS_Printer
 
                 
                 
-                SendRAW(cmd);
-
+                SendRAW(cmd,0,n);
+                
 
 
                 System.Threading.Thread.Sleep(10);
             }
 
-            
 
+            SendString("\n\n");
 
 
 
