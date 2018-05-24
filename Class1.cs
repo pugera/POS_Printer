@@ -253,11 +253,20 @@ namespace POS_Printer
         public String Port_Name="";
 
 
-        Bitmap Receipt = new Bitmap(384, 540);
+        Bitmap Receipt = new Bitmap(384, 2000);
+
+
+        Bitmap Canvas = new Bitmap(384, 2000);
+        Graphics rcc;
         
         int Pos_Y = 0;
 
         Graphics rc;
+
+
+        public int LineHeight = 30;
+
+        public int EndHeight = 50;
 
 
         public Create_Receipt() {
@@ -265,22 +274,56 @@ namespace POS_Printer
             rc.PixelOffsetMode = PixelOffsetMode.Half;
             rc.InterpolationMode = InterpolationMode.NearestNeighbor;
             rc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
+
+
+            rcc = Graphics.FromImage(Canvas);
+            rcc.PixelOffsetMode = PixelOffsetMode.Half;
+            rcc.InterpolationMode = InterpolationMode.NearestNeighbor;
+            rcc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
+
+        
         }
 
 
 
+        void Resize(int y) {
+            Receipt = new Bitmap(384, y);
+            rc = Graphics.FromImage(Receipt);
+            rc.PixelOffsetMode = PixelOffsetMode.Half;
+            rc.InterpolationMode = InterpolationMode.NearestNeighbor;
+            rc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
+        }
+
         public void Logo(String Img) {
+
             Bitmap ALine = new Bitmap(Img);
 
-            rc.DrawImage(ALine, 0, Pos_Y, (int)(ALine.Width), (int)(ALine.Height));
+            rcc.DrawImage(ALine, 0, Pos_Y, (int)(ALine.Width), (int)(ALine.Height));
 
             Pos_Y += ALine.Height;
+
+            Resize(Pos_Y);
+
+            rc.DrawImage(Canvas, 0, 0, (int)(Canvas.Width), (int)(Canvas.Height));
+
+            
 
         }
 
 
         public void NewLine() {
-            Pos_Y += 30;
+
+            Pos_Y += LineHeight;
+            Print("");
+
+        }
+
+
+        public void PutEnd() {
+
+            Pos_Y += EndHeight;
+            Print("");
+
         }
 
         public int Pow = 1;
@@ -303,20 +346,27 @@ namespace POS_Printer
             //Bitmap logo = new Bitmap(@".\\logo.png");
 
 
-           
-            rc.DrawImage(ALine, Offset, Pos_Y, (int)(ALine.Width*2*Pow), (int)(ALine.Height*2));
+
+            rcc.DrawImage(ALine, Offset, Pos_Y, (int)(ALine.Width * 2 * Pow), (int)(ALine.Height * 2));
+
+            Resize(Pos_Y+LineHeight);
+
+            rc.DrawImage(Canvas, 0, 0, (int)(Canvas.Width), (int)(Canvas.Height));
 
 
 
         }
 
         public void CreateImage() {
-
+            PutEnd();
             Receipt.Save(@".\\ss.png");
         }
 
 
         public void SendImage() {
+
+            PutEnd();
+
             Sender printer = new Sender();
 
             printer.Port_Name = Port_Name;
