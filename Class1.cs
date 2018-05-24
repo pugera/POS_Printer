@@ -88,9 +88,10 @@ namespace POS_Printer
 
             Bitmap myBitmap = new Bitmap(FileName);
 
+            int a;
 
 
-            for (int a = 0; a < (myBitmap.Height / Speed); a++) {
+            for (a = 0; a < (myBitmap.Height / Speed); a++) {
 
 
 
@@ -127,7 +128,6 @@ namespace POS_Printer
                             }
 
                         }
-
 
 
 
@@ -148,7 +148,76 @@ namespace POS_Printer
             }
 
 
-            SendString("\n\n");
+
+            if (Speed * a < myBitmap.Height) {
+
+
+                byte[] cmd = new byte[65535];
+                int n = 0;
+
+                //MessageBox.Show((myBitmap.Height - a*Speed).ToString());
+
+                cmd[n++] = 0x1d;//GS
+                cmd[n++] = 0x76;//v
+                cmd[n++] = 0x30;//0
+                cmd[n++] = 0;//m
+                cmd[n++] = 48;//xL
+                cmd[n++] = 0;//xH
+                cmd[n++] = (byte)((myBitmap.Height - a * Speed) % 256);//yL
+                //MessageBox.Show(cmd[n - 1].ToString());
+                cmd[n++] = (byte)((myBitmap.Height - a * Speed) / 256);//yH
+
+                for (int j = 0; j < (myBitmap.Height - a * Speed); j++) {
+
+                    //MessageBox.Show(j.ToString());
+
+                    for (int m = 0; m < 48; m++) {
+
+
+                        byte tis = 0;
+
+                        for (int mx = 0; mx < 8; mx++) {
+
+                            if ((myBitmap.GetPixel(m * 8 + (7 - mx), j + Speed * a).R + myBitmap.GetPixel(m * 8 + (7 - mx), j + Speed * a).G + myBitmap.GetPixel(m * 8 + (7 - mx), j + Speed * a).B) < 384) {
+
+                                tis += (byte)Math.Pow(2, mx);
+
+                            }
+
+
+                            //Console.WriteLine((n).ToString());
+
+                        }
+
+
+
+
+
+
+
+                        cmd[n++] = tis;
+
+                    }
+                }
+
+
+                //MessageBox.Show(cmd.ToString() + ",");
+                //MessageBox.Show(n.ToString());
+
+                SendRAW(cmd, 0, n);
+
+
+
+                System.Threading.Thread.Sleep(10);
+
+
+
+
+
+
+
+            }
+            
 
 
 
@@ -162,12 +231,12 @@ namespace POS_Printer
 
         public void SendImage(Bitmap myBitmap) {
 
-
+           // MessageBox.Show(myBitmap.Height.ToString());
             
+            int a;
 
 
-
-            for (int a = 0; a < (myBitmap.Height / Speed); a++) {
+            for (a = 0; a < (myBitmap.Height / Speed); a++) {
 
 
 
@@ -207,6 +276,8 @@ namespace POS_Printer
 
 
 
+                        //Console.WriteLine((j + Speed * a).ToString());
+                        
 
 
                         cmd[n++] = tis;
@@ -225,7 +296,81 @@ namespace POS_Printer
             }
 
 
-            SendString("\n\n");
+
+            if(Speed*a<myBitmap.Height){
+
+
+                byte[] cmd = new byte[65535];
+                int n = 0;
+
+                //MessageBox.Show((myBitmap.Height - a*Speed).ToString());
+
+                cmd[n++] = 0x1d;//GS
+                cmd[n++] = 0x76;//v
+                cmd[n++] = 0x30;//0
+                cmd[n++] = 0;//m
+                cmd[n++] = 48;//xL
+                cmd[n++] = 0;//xH
+                cmd[n++] = (byte)((myBitmap.Height-a*Speed) % 256);//yL
+                //MessageBox.Show(cmd[n-1].ToString());
+                cmd[n++] = (byte)((myBitmap.Height - a*Speed) / 256);//yH
+
+                for (int j = 0; j < (myBitmap.Height - a*Speed); j++) {
+
+                    //MessageBox.Show(j.ToString());
+
+                    for (int m = 0; m < 48; m++) {
+
+
+                        byte tis = 0;
+
+                        for (int mx = 0; mx < 8; mx++) {
+
+                            if ((myBitmap.GetPixel(m * 8 + (7 - mx), j + Speed * a).R + myBitmap.GetPixel(m * 8 + (7 - mx), j + Speed * a).G + myBitmap.GetPixel(m * 8 + (7 - mx), j + Speed * a).B) < 384) {
+
+                                tis += (byte)Math.Pow(2, mx);
+
+                            }
+
+
+                            //Console.WriteLine((n).ToString());
+
+                        }
+
+
+
+                        
+
+
+
+                        cmd[n++] = tis;
+
+                    }
+                }
+
+
+                //MessageBox.Show(cmd.ToString()+",");
+                //MessageBox.Show(n.ToString());
+
+                SendRAW(cmd, 0, n);
+
+
+
+                System.Threading.Thread.Sleep(10);
+
+
+
+
+
+
+            
+            }
+
+
+
+
+
+
 
 
 
@@ -266,8 +411,9 @@ namespace POS_Printer
 
         public int LineHeight = 30;
 
-        public int EndHeight = 50;
+        public int EndHeight = 30;
 
+        public int Speed = 24;
 
         public Create_Receipt() {
             rc = Graphics.FromImage(Receipt);
@@ -280,6 +426,9 @@ namespace POS_Printer
             rcc.PixelOffsetMode = PixelOffsetMode.Half;
             rcc.InterpolationMode = InterpolationMode.NearestNeighbor;
             rcc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
+
+
+
 
         
         }
@@ -358,22 +507,40 @@ namespace POS_Printer
         }
 
         public void CreateImage() {
-            PutEnd();
+            Pos_Y += EndHeight;
+            Print("");
+
             Receipt.Save(@".\\ss.png");
+            //MessageBox.Show(Receipt.Height.ToString());
+
+            Pos_Y -= EndHeight;
+            Print("");
+
         }
 
 
         public void SendImage() {
 
-            PutEnd();
+            Pos_Y += EndHeight;
+            Print("");
+
+            //MessageBox.Show(Receipt.Height.ToString());
 
             Sender printer = new Sender();
 
             printer.Port_Name = Port_Name;
             printer.Open();
+            printer.Speed=Speed;
             
             printer.SendImage(Receipt);
+            printer.SendString("\n\n\n");
             printer.Close();
+
+
+            Pos_Y -= EndHeight;
+            Print("");
+           
+
         }
 
     
