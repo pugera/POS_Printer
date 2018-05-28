@@ -398,15 +398,20 @@ namespace POS_Printer
         public String Port_Name="";
 
 
-        Bitmap Receipt = new Bitmap(384, 2000);
+        Bitmap Receipt = new Bitmap(384, 1);
+        Graphics rc;
 
 
-        Bitmap Canvas = new Bitmap(384, 2000);
-        Graphics rcc;
-        
         int Pos_Y = 0;
 
-        Graphics rc;
+
+
+        public int Txt_Width = 1;//テキストの横倍率
+        public int Txt_Height = 1;//テキストの縦倍率
+
+
+        public int Offset = 0;//テキストのX座標オフセット
+
 
 
         public int LineHeight = 30;
@@ -421,42 +426,60 @@ namespace POS_Printer
             rc.InterpolationMode = InterpolationMode.NearestNeighbor;
             rc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
 
-
-            rcc = Graphics.FromImage(Canvas);
-            rcc.PixelOffsetMode = PixelOffsetMode.Half;
-            rcc.InterpolationMode = InterpolationMode.NearestNeighbor;
-            rcc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
-
-
-
-
         
         }
 
 
 
         void Resize(int y) {
-            Receipt = new Bitmap(384, y);
-            rc = Graphics.FromImage(Receipt);
-            rc.PixelOffsetMode = PixelOffsetMode.Half;
-            rc.InterpolationMode = InterpolationMode.NearestNeighbor;
-            rc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
+
+            Bitmap tmp_b = new Bitmap(Receipt.Width, Receipt.Height);//現在のレシートサイズを取得
+
+            Graphics tmp_g = Graphics.FromImage(tmp_b);//現在のレシート状態をキャプチャ
+
+
+            tmp_g.FillRectangle(Brushes.White, tmp_g.VisibleClipBounds);//白塗りつぶし
+
+            tmp_g.DrawImage(Receipt, 0, 0, Receipt.Width, Receipt.Height);//現在のレシートを貼り付け
+
+
+            Receipt.Dispose();//メモリ解放
+            rc.Dispose();//メモリ解放
+
+            Receipt = new Bitmap(384,y);//レシートのサイズ変更
+
+            
+            rc = Graphics.FromImage(Receipt);//貼り付け用レイヤーのメモリ再取得
+            rc.PixelOffsetMode = PixelOffsetMode.Half;//アンチエイリアス処理－＞オフ
+            rc.InterpolationMode = InterpolationMode.NearestNeighbor;//アンチエイリアス処理－＞オフ
+            rc.FillRectangle(Brushes.White, rc.VisibleClipBounds);//白塗りつぶし
+
+
+            rc.DrawImage(tmp_b,0,0,tmp_b.Width,tmp_b.Height);//レシートに前の状態のレシートを書き込み
+
+            tmp_b.Dispose();//メモリ解放
+            tmp_g.Dispose();//メモリ解放
+
+
+
+
         }
 
         public void Logo(String Img) {
 
-            Bitmap ALine = new Bitmap(Img);
-
-            rcc.DrawImage(ALine, 0, Pos_Y, (int)(ALine.Width), (int)(ALine.Height));
-
-            Pos_Y += ALine.Height;
-
-            Resize(Pos_Y);
-
-            rc.DrawImage(Canvas, 0, 0, (int)(Canvas.Width), (int)(Canvas.Height));
-
             
 
+            Bitmap ALine = new Bitmap(Img);//画像読み込み
+
+            
+            Resize(Pos_Y+ALine.Height);//リサイズ
+
+            rc.DrawImage(ALine, 0, Pos_Y, (int)(ALine.Width), (int)(ALine.Height));//描画処理反映
+
+            Pos_Y += ALine.Height;//ビットマップの高さの差分をレシートに加算
+
+
+            ALine.Dispose();
         }
 
 
@@ -475,33 +498,27 @@ namespace POS_Printer
 
         }
 
-        public int Pow = 1;
 
-        public int Offset = 0;
 
         public void Print (String Txt){
 
-
-
-            Bitmap ALine = new Bitmap(384, 25);
+            //1ライン分の画像を生成
+            Bitmap ALine = new Bitmap(384, LineHeight);
             Graphics ln = Graphics.FromImage(ALine);
 
-            Font fnt = new Font("ＭＳ ゴシック", 10);
+            //フォント設定
+            Font fnt = new Font("ＤＦ華康ゴシック体W2", 18);
             ln.DrawString(Txt, fnt, Brushes.Black,new Point(0,0));
 
+            //レシートをリサイズ
+            Resize(Pos_Y + LineHeight);
 
-            //ln.PixelOffsetMode = PixelOffsetMode.Half;
-            //ln.InterpolationMode = InterpolationMode.NearestNeighbor;
-            //Bitmap logo = new Bitmap(@".\\logo.png");
+            //倍率適用して貼り付け
+            rc.DrawImage(ALine, Offset, Pos_Y, (int)(ALine.Width * 1.0 * Txt_Width), (int)(ALine.Height * 1.0 * Txt_Height));
 
-
-
-            rcc.DrawImage(ALine, Offset, Pos_Y, (int)(ALine.Width * 2 * Pow), (int)(ALine.Height * 2));
-
-            Resize(Pos_Y+LineHeight);
-
-            rc.DrawImage(Canvas, 0, 0, (int)(Canvas.Width), (int)(Canvas.Height));
-
+            ALine.Dispose();
+            ln.Dispose();
+            fnt.Dispose();
 
 
         }
