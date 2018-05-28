@@ -399,7 +399,7 @@ namespace POS_Printer
 
 
         Bitmap Receipt = new Bitmap(384, 1);
-        Graphics rc;
+        Graphics Canvas;
 
 
         int Pos_Y = 0;
@@ -420,11 +420,17 @@ namespace POS_Printer
 
         public int Speed = 24;
 
+        public int Buffer = 10000;
+
+
+        public String Font_Name = "ＤＦ華康ゴシック体W2";
+        public int Font_Size = 18;
+
         public Create_Receipt() {
-            rc = Graphics.FromImage(Receipt);
-            rc.PixelOffsetMode = PixelOffsetMode.Half;
-            rc.InterpolationMode = InterpolationMode.NearestNeighbor;
-            rc.FillRectangle(Brushes.White, rc.VisibleClipBounds);
+            Canvas = Graphics.FromImage(Receipt);
+            Canvas.PixelOffsetMode = PixelOffsetMode.Half;
+            Canvas.InterpolationMode = InterpolationMode.NearestNeighbor;
+            Canvas.FillRectangle(Brushes.White, Canvas.VisibleClipBounds);
 
         
         }
@@ -444,18 +450,18 @@ namespace POS_Printer
 
 
             Receipt.Dispose();//メモリ解放
-            rc.Dispose();//メモリ解放
+            Canvas.Dispose();//メモリ解放
 
             Receipt = new Bitmap(384,y);//レシートのサイズ変更
 
             
-            rc = Graphics.FromImage(Receipt);//貼り付け用レイヤーのメモリ再取得
-            rc.PixelOffsetMode = PixelOffsetMode.Half;//アンチエイリアス処理－＞オフ
-            rc.InterpolationMode = InterpolationMode.NearestNeighbor;//アンチエイリアス処理－＞オフ
-            rc.FillRectangle(Brushes.White, rc.VisibleClipBounds);//白塗りつぶし
+            Canvas = Graphics.FromImage(Receipt);//貼り付け用レイヤーのメモリ再取得
+            Canvas.PixelOffsetMode = PixelOffsetMode.Half;//アンチエイリアス処理－＞オフ
+            Canvas.InterpolationMode = InterpolationMode.NearestNeighbor;//アンチエイリアス処理－＞オフ
+            Canvas.FillRectangle(Brushes.White, Canvas.VisibleClipBounds);//白塗りつぶし
 
 
-            rc.DrawImage(tmp_b,0,0,tmp_b.Width,tmp_b.Height);//レシートに前の状態のレシートを書き込み
+            Canvas.DrawImage(tmp_b,0,0,tmp_b.Width,tmp_b.Height);//レシートに前の状態のレシートを書き込み
 
             tmp_b.Dispose();//メモリ解放
             tmp_g.Dispose();//メモリ解放
@@ -472,21 +478,24 @@ namespace POS_Printer
             Bitmap ALine = new Bitmap(Img);//画像読み込み
 
             
-            Resize(Pos_Y+ALine.Height);//リサイズ
+            //リサイズ
+            if (Receipt.Height < Pos_Y + LineHeight) {
+                Resize(Receipt.Height + Buffer);
+            }
 
-            rc.DrawImage(ALine, 0, Pos_Y, (int)(ALine.Width), (int)(ALine.Height));//描画処理反映
+            Canvas.DrawImage(ALine, 0, Pos_Y, (int)(ALine.Width), (int)(ALine.Height));//描画処理反映
 
             Pos_Y += ALine.Height;//ビットマップの高さの差分をレシートに加算
 
 
-            ALine.Dispose();
+            ALine.Dispose();//メモリ開放
         }
 
 
         public void NewLine() {
 
             Pos_Y += LineHeight;
-            Print("");
+            //Resize(Pos_Y);
 
         }
 
@@ -494,7 +503,7 @@ namespace POS_Printer
         public void PutEnd() {
 
             Pos_Y += EndHeight;
-            Print("");
+            //Resize(Pos_Y);
 
         }
 
@@ -507,41 +516,45 @@ namespace POS_Printer
             Graphics ln = Graphics.FromImage(ALine);
 
             //フォント設定
-            Font fnt = new Font("ＤＦ華康ゴシック体W2", 18);
+            Font fnt = new Font(Font_Name, Font_Size);
             ln.DrawString(Txt, fnt, Brushes.Black,new Point(0,0));
 
             //レシートをリサイズ
-            Resize(Pos_Y + LineHeight);
+
+            if (Receipt.Height < Pos_Y + LineHeight) {
+                Resize(Receipt.Height + Buffer);
+            }
 
             //倍率適用して貼り付け
-            rc.DrawImage(ALine, Offset, Pos_Y, (int)(ALine.Width * 1.0 * Txt_Width), (int)(ALine.Height * 1.0 * Txt_Height));
+            Canvas.DrawImage(ALine, Offset, Pos_Y, (int)(ALine.Width * 1.0 * Txt_Width), (int)(ALine.Height * 1.0 * Txt_Height));
 
-            ALine.Dispose();
-            ln.Dispose();
-            fnt.Dispose();
+            ALine.Dispose();//メモリ開放
+            ln.Dispose();//メモリ開放
+            fnt.Dispose();//メモリ開放
 
+
+        }
+
+
+
+        public void CreateImage(String FileName) {
+            Resize(Pos_Y);
+            Receipt.Save(FileName);
 
         }
 
-        public void CreateImage() {
-            Pos_Y += EndHeight;
-            Print("");
 
-            Receipt.Save(@".\\ss.png");
-            //MessageBox.Show(Receipt.Height.ToString());
 
-            Pos_Y -= EndHeight;
-            Print("");
+        public Bitmap CreateBitmap() {
+
+            return Receipt;
 
         }
+
 
 
         public void SendImage() {
 
-            Pos_Y += EndHeight;
-            Print("");
-
-            //MessageBox.Show(Receipt.Height.ToString());
 
             Sender printer = new Sender();
 
@@ -550,18 +563,36 @@ namespace POS_Printer
             printer.Speed=Speed;
             
             printer.SendImage(Receipt);
+
             printer.SendString("\n\n\n");
             printer.Close();
 
-
-            Pos_Y -= EndHeight;
-            Print("");
            
 
         }
 
     
     }
+
+
+    public class Receipt_Maker {
+
+        public int Check_Length(String Source) {
+
+            System.Text.RegularExpressions.MatchCollection mc = System.Text.RegularExpressions.Regex.Matches(Source, @"(.+?)\(.+\);");
+
+            foreach (System.Text.RegularExpressions.Match m in mc) {
+                Console.WriteLine(m.Value);
+            }
+
+
+
+            return 0;
+        }
+    
+    
+    }
+
 
 
 
